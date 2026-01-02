@@ -1,0 +1,29 @@
+# Binaries
+go-donutng
+go-donutng.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output files
+*.bin
+*.b64
+*.rb
+*.py
+*.ps1
+*.cs
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
