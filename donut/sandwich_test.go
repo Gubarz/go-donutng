@@ -150,12 +150,13 @@ func TestLoaderSizes(t *testing.T) {
 	t.Logf("X64 loader: %d bytes", len(LOADER_EXE_X64))
 	t.Logf("X86 loader: %d bytes", len(LOADER_EXE_X86))
 
-	// Sanity check - loaders should be reasonably sized (between 5KB and 20KB)
-	if len(LOADER_EXE_X64) < 5000 || len(LOADER_EXE_X64) > 20000 {
-		t.Errorf("X64 loader size suspicious: %d (expected 5000-20000)", len(LOADER_EXE_X64))
+	// Sanity check - loaders should be reasonably sized (between 5KB and 35KB)
+	// Note: Donut v1.1+ loaders are larger due to additional bypass/features
+	if len(LOADER_EXE_X64) < 5000 || len(LOADER_EXE_X64) > 35000 {
+		t.Errorf("X64 loader size suspicious: %d (expected 5000-35000)", len(LOADER_EXE_X64))
 	}
-	if len(LOADER_EXE_X86) < 5000 || len(LOADER_EXE_X86) > 20000 {
-		t.Errorf("X86 loader size suspicious: %d (expected 5000-20000)", len(LOADER_EXE_X86))
+	if len(LOADER_EXE_X86) < 5000 || len(LOADER_EXE_X86) > 35000 {
+		t.Errorf("X86 loader size suspicious: %d (expected 5000-35000)", len(LOADER_EXE_X86))
 	}
 }
 

@@ -184,7 +184,9 @@ type DonutInstance struct {
 
 	IV uint64 // the 64-bit initial value for maru hash
 
-	Hash [64]uint64 // holds up to 64 api hashes (or addresses at runtime)
+	Hash [58]uint64 // holds up to 58 api hashes (reduced from 64 for syscall support)
+
+	SyscallList uint64 // pointer to syscall table for syswhispers2 (runtime only)
 
 	ExitOpt int32  // 1=thread, 2=process, 3=block
 	Entropy int32  // indicates entropy level

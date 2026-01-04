@@ -434,24 +434,27 @@ func serializeInstance(inst *DonutInstance, mod *DonutModule, config *DonutConfi
 	inst.ModLen = uint64(len(moduleData))
 
 	// Write instance header (unencrypted portion)
-	// Donut 1.1 uses NATURAL alignment (not packed), so iv must be 8-byte aligned
-	// Layout: len(4) + key.mk(16) + key.ctr(16) + pad(4) + iv(8) + hash[64](512) + exit_opt(4) + entropy(4) + oep(4)
+	// Donut 1.1 with syscalls uses NATURAL alignment (not packed), so iv must be 8-byte aligned
+	// Layout: len(4) + key.mk(16) + key.ctr(16) + pad(4) + iv(8) + hash[58](464) + syscall_list(8) + exit_opt(4) + entropy(4) + oep(4)
 	binary.Write(buf, binary.LittleEndian, uint32(0)) // len placeholder (offset 0x00)
 	buf.Write(inst.Key.MasterKey[:])                  // uint8_t mk[16] (offset 0x04)
 	buf.Write(inst.Key.Counter[:])                    // uint8_t ctr[16] (offset 0x14)
 	binary.Write(buf, binary.LittleEndian, uint32(0)) // padding for 8-byte alignment (offset 0x24)
 	binary.Write(buf, binary.LittleEndian, inst.IV)   // uint64_t iv (offset 0x28)
 
-	// Write API hashes - uint64_t hash[64] (offset 0x30, ends at 0x22f)
-	for i := 0; i < 64; i++ {
+	// Write API hashes - uint64_t hash[58] (offset 0x30, ends at 0x1ff)
+	for i := 0; i < 58; i++ {
 		binary.Write(buf, binary.LittleEndian, inst.Hash[i])
 	}
 
-	binary.Write(buf, binary.LittleEndian, inst.ExitOpt) // int exit_opt (offset 0x230)
-	binary.Write(buf, binary.LittleEndian, inst.Entropy) // int entropy (offset 0x234)
-	binary.Write(buf, binary.LittleEndian, inst.OEP)     // uint32_t oep (offset 0x238)
+	// syscall_list pointer - set to 0, populated at runtime by loader
+	binary.Write(buf, binary.LittleEndian, uint64(0)) // uint64_t syscall_list (offset 0x200)
 
-	// Encrypted portion starts here (offset 0x23c)
+	binary.Write(buf, binary.LittleEndian, inst.ExitOpt) // int exit_opt (offset 0x208)
+	binary.Write(buf, binary.LittleEndian, inst.Entropy) // int entropy (offset 0x20c)
+	binary.Write(buf, binary.LittleEndian, inst.OEP)     // uint32_t oep (offset 0x210)
+
+	// Encrypted portion starts here (offset 0x214)
 	encBuf := new(bytes.Buffer)
 
 	binary.Write(encBuf, binary.LittleEndian, inst.ApiCnt) // int api_cnt
@@ -567,18 +570,21 @@ type apiEntry struct {
 	name string
 }
 
+// apiList must match the C donut api_imports exactly (58 entries)
+// Removed for syscall support: VirtualQuery, VirtualProtect, WaitForSingleObject, CloseHandle,
+//
+//	NtCreateSection, NtMapViewOfSection, NtUnmapViewOfSection
+//
+// Added: AddVectoredExceptionHandler, RemoveVectoredExceptionHandler
 var apiList = []apiEntry{
 	{KERNEL32_DLL, "LoadLibraryA"},
 	{KERNEL32_DLL, "GetProcAddress"},
 	{KERNEL32_DLL, "GetModuleHandleA"},
 	{KERNEL32_DLL, "VirtualAlloc"},
 	{KERNEL32_DLL, "VirtualFree"},
-	{KERNEL32_DLL, "VirtualQuery"},
-	{KERNEL32_DLL, "VirtualProtect"},
 	{KERNEL32_DLL, "Sleep"},
 	{KERNEL32_DLL, "MultiByteToWideChar"},
 	{KERNEL32_DLL, "GetUserDefaultLCID"},
-	{KERNEL32_DLL, "WaitForSingleObject"},
 	{KERNEL32_DLL, "CreateThread"},
 	{KERNEL32_DLL, "CreateFileA"},
 	{KERNEL32_DLL, "GetFileSizeEx"},
@@ -592,7 +598,6 @@ var apiList = []apiEntry{
 	{KERNEL32_DLL, "GetProcessHeap"},
 	{KERNEL32_DLL, "HeapFree"},
 	{KERNEL32_DLL, "GetLastError"},
-	{KERNEL32_DLL, "CloseHandle"},
 	{SHELL32_DLL, "CommandLineToArgvW"},
 	{OLEAUT32_DLL, "SafeArrayCreate"},
 	{OLEAUT32_DLL, "SafeArrayCreateVector"},
@@ -628,9 +633,8 @@ var apiList = []apiEntry{
 	{NTDLL_DLL, "RtlGetCompressionWorkSpaceSize"},
 	{NTDLL_DLL, "RtlDecompressBuffer"},
 	{NTDLL_DLL, "NtContinue"},
-	{NTDLL_DLL, "NtCreateSection"},
-	{NTDLL_DLL, "NtMapViewOfSection"},
-	{NTDLL_DLL, "NtUnmapViewOfSection"},
+	{KERNEL32_DLL, "AddVectoredExceptionHandler"},
+	{KERNEL32_DLL, "RemoveVectoredExceptionHandler"},
 }
 
 // Sandwich creates the final shellcode by wrapping instance data with

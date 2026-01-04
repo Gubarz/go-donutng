@@ -161,8 +161,9 @@ func TestFileInfo(t *testing.T) {
 func TestDonutInstanceFields(t *testing.T) {
 	inst := DonutInstance{}
 
-	if len(inst.Hash) != 64 {
-		t.Errorf("Hash array should be 64 elements")
+	// Updated for syscall support: hash[58] instead of hash[64]
+	if len(inst.Hash) != 58 {
+		t.Errorf("Hash array should be 58 elements (reduced for syscall support)")
 	}
 	if len(inst.DllNames) != DONUT_MAX_NAME {
 		t.Errorf("DllNames should be %d bytes", DONUT_MAX_NAME)
