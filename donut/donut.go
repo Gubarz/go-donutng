@@ -249,8 +249,26 @@ func buildModule(data []byte, peInfo *PEInfo, config *DonutConfig) (*DonutModule
 	}
 
 	// Set arguments
+	// For unmanaged EXE, we need to prefix with a fake program name (argv[0])
+	// because the loader passes this as the command line to the executable
 	if config.Parameters != "" {
-		copy(mod.Args[:], config.Parameters)
+		if peInfo.Type == DONUT_MODULE_EXE {
+			// Unmanaged EXE: prefix with fake program name
+			var fakeExeName string
+			if config.Entropy >= DONUT_ENTROPY_RANDOM {
+				// Generate random name when entropy is enabled
+				fakeExeName = randomString(DONUT_DOMAIN_LEN)
+			} else {
+				// Use placeholder when entropy is disabled
+				fakeExeName = "AAAAAAAA"
+			}
+			// Format: "fakename params" - the space separates argv[0] from argv[1..]
+			cmdLine := fakeExeName + " " + config.Parameters
+			copy(mod.Args[:], cmdLine)
+		} else {
+			// For DLLs, .NET assemblies, scripts - just copy params directly
+			copy(mod.Args[:], config.Parameters)
+		}
 		if config.Unicode != 0 {
 			mod.Unicode = 1
 		}
