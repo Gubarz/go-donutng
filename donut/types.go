@@ -309,8 +309,10 @@ type DonutConfig struct {
 	Inst     *DonutInstance // points to DONUT_INSTANCE
 
 	// Shellcode generated from configuration
-	PicLen int    // size of loader/shellcode
-	Pic    []byte // points to loader/shellcode
+	PicLen     int    // size of loader/shellcode
+	Pic        []byte // points to loader/shellcode
+	ModuleData []byte // encrypted module for HTTP staging
+	ModuleName string // name of the module for HTTP staging
 }
 
 // DefaultConfig returns a DonutConfig with sensible defaults

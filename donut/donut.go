@@ -547,6 +547,16 @@ func serializeInstance(inst *DonutInstance, mod *DonutModule, config *DonutConfi
 	// For HTTP mode, module is encrypted separately and stored on server
 	if config.InstType == DONUT_INSTANCE_PIC {
 		encBuf.Write(moduleData)
+	} else if config.InstType == DONUT_INSTANCE_URL {
+		modEncData := append([]byte(nil), moduleData...)
+		if config.Entropy >= DONUT_ENTROPY_DEFAULT {
+			modEncData = EncryptCTR(inst.ModKey.MasterKey[:], inst.ModKey.Counter[:], modEncData)
+		}
+		config.ModuleData = modEncData
+		if config.ModName == "" {
+			config.ModName = randomString(8)
+		}
+		config.ModuleName = config.ModName
 	}
 
 	// Encrypt the entire encrypted section (including embedded module) if needed
